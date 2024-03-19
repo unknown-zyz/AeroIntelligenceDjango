@@ -7,16 +7,17 @@ from django.forms.models import model_to_dict
 from django.http import JsonResponse
 
 from Tools.EmailCheck import emailCheck, createCaptcha
-from Tools.LoginCheck import loginCheck
+# from Tools.LoginCheck import loginCheck
 from Tools.MakeToken import make_token
 from Tools.QiNiuYun import uploadFile
 from User.models import *
+from django.contrib.auth.hashers import make_password,check_password
 
 
 # 注册
 def userRegister(request):
-    json_str = request.body  # 拿到json字符串
-    json_obj = json.loads(json_str)  # 将json字符串转换为字典对象
+    json_str = request.body
+    json_obj = json.loads(json_str)
     username = json_obj.get('username')
     password = json_obj.get('password')
     confirmPassword = json_obj.get('confirmPassword')
@@ -47,7 +48,7 @@ def userRegister(request):
         if correctCaptcha.captcha != captcha:
             return JsonResponse({'code': 400, 'message': "验证码错误", 'data': {}})
         else:
-            newUser = User(username=username, password=password, phone=phone, email=email, name=name)
+            newUser = User(username=username, password=make_password(password), phone=phone, email=email, name=name)
             if avatar: newUser.avatar = avatar
             try:
                 newUser.save()
@@ -60,31 +61,28 @@ def userRegister(request):
     return JsonResponse({'code': 200, 'message': "注册成功", 'data': {}})
 
 
-# 登录
 def userLogin(request):
     json_str = request.body
     json_obj = json.loads(json_str)
-    username = json_obj.get('username')  # 获取请求数据
+    username = json_obj.get('username')
     password = json_obj.get('password')
     if not User.objects.filter(Q(username=username) & Q(is_active=True)).exists():  # 用户名是否存在
         return JsonResponse({'code': 400, 'message': "用户名不存在", 'data': {}})
     else:
         user = User.objects.get(username=username)
-    if user.password == password:  # 判断请求的密码是否与数据库存储的密码相同
-        token = make_token(user.uid)  # 成功登录生成token并以字符串的形式返回
-        user.logincnt +=1
+    if check_password(password, user.password):
+        token = make_token(user.uid)
+        # user.logincnt +=1
         user.save()
         return JsonResponse({'code': 200, 'message': "登录成功", 'data': {
             'token': token,
             'uid': user.uid,
-            'logincnt': user.logincnt,
+            # 'logincnt': user.logincnt,
         }})
-    # 重定向回先前页面
     else:
         return JsonResponse({'code': 400, 'message': "密码错误", 'data': {}})
 
 
-# 发送验证码
 def sendCaptcha(request):
     json_str = request.body
     json_obj = json.loads(json_str)
@@ -101,7 +99,7 @@ def sendCaptcha(request):
     return JsonResponse({'code': 200, 'message': "验证码发送成功", 'data': {}})
 
 
-@loginCheck
+# @loginCheck
 def changeInformation(request):  # 修改个人信息
     user = request.myUser
     json_str = request.body
@@ -133,7 +131,7 @@ def changeInformation(request):  # 修改个人信息
         return JsonResponse({'code': 500, 'message': "服务器异常", "data": {}})
 
 
-@loginCheck
+# @loginCheck
 def changePassword(request):  # 修改密码
     json_str = request.body
     json_obj = json.loads(json_str)
@@ -159,7 +157,7 @@ def changePassword(request):  # 修改密码
         return JsonResponse({'code': 200, 'message': '修改密码成功', 'data': {}})
 
 
-@loginCheck
+# @loginCheck
 def changeAvatar(request):  # 修改头像
     key = request.POST.get("key")
     file = request.FILES.get("file")
@@ -195,7 +193,7 @@ def pwdFind(request):  # 找回密码验证
         return JsonResponse({'code': 500, 'message': '服务器异常', 'data': {}})
 
 
-@loginCheck
+# @loginCheck
 def showInfo(request):  # 返回个人信息
     user = request.myUser
     data = model_to_dict(user)
