@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "News",
     "BrowseRecord",
     "Tag",
+    "Article",
 ]
 
 MIDDLEWARE = [

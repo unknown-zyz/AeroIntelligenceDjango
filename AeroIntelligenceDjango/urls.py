@@ -24,4 +24,5 @@ urlpatterns = [
     path("news/", include(("News.urls", 'News'))),
     path("browse/", include(("BrowseRecord.urls", 'BrowseRecord'))),
     path("tag/", include(("Tag.urls", 'Tag'))),
+    path("article/", include(("Article.urls", 'Article'))),
 ]
