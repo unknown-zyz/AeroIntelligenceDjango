@@ -1,5 +1,8 @@
 from elasticsearch import Elasticsearch
 from django.http import JsonResponse
+from BrowseRecord.serializers import BrowseRecordSerializer
+from Tools.LoginCheck import login_required
+from User.models import User
 
 es = Elasticsearch(['http://localhost:9200'])
 
@@ -18,7 +21,7 @@ def ArticleListOrderedByDate(request):
         ]
     }
     result = es.search(index="article", body=query)
-    print(result)
+    # print(result)
     articles = result['hits']['hits']
     return JsonResponse({'articles': articles})
 
@@ -45,9 +48,20 @@ def ArticleListOrderedByRead(request):
     articles = result['hits']['hits']
     return JsonResponse({'articles': articles})
 
+@login_required
 def ArticleDetail(request, article_id):
     result = es.get(index="article", id=article_id)
+    # 是否需要 read_num+1
+    user = request.user
+    browse_record_data = {
+        'user': user.uid,
+        'article_id': article_id,
+    }
+    browse_record_serializer = BrowseRecordSerializer(data=browse_record_data)
+    if browse_record_serializer.is_valid():
+        browse_record_serializer.save()
     return JsonResponse(result['_source'])
+
 
 def create_article(request):
 
