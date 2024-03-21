@@ -5,4 +5,5 @@ urlpatterns = [
     path('', ArticleListOrderedByDate),
     path('read/', ArticleListOrderedByRead),
     path('detail/<int:article_id>/', ArticleDetail),
+    path('create/', create_article),
 ]
