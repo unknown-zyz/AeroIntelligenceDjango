@@ -10,8 +10,12 @@ es = Elasticsearch(['http://localhost:9200'])
 
 class ArticleListOrderedByDate(APIView):
     def get(self, request):
+        page = int(request.GET.get('page', 1))
+        page_size = 10
+        from_record = (page - 1) * page_size
         query = {
-            "size": 10,
+            "from": from_record,
+            "size": page_size,
             "query": {
                 "match_all": {}
             },
@@ -63,6 +67,24 @@ class ArticleDetail(APIView):
             browse_record_serializer.save()
         return JsonResponse(result['_source'])
 
+
+class SearchArticle(APIView):
+    @login_required
+    def get(self, request):
+        keyword = request.GET.get('keyword')
+        query = {
+            "query": {
+                "multi_match": {
+                    "query": keyword,
+                    "fields": ["title_en", "title_cn", "content_en", "content_cn"]
+                }
+            }
+        }
+        result = es.search(index="article", body=query)
+        articles = result['hits']['hits']
+        return JsonResponse({'articles': articles})
+
+
 # def create_article(request):
 #
 #     article_data = {
@@ -104,4 +126,4 @@ class ArticleDetail(APIView):
 #     except Exception as e:
 #         return JsonResponse({'error': str(e)}, status=500)
 
-# def search(request):
+
