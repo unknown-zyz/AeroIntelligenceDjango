@@ -56,7 +56,13 @@ class ArticleDetail(APIView):
     @login_required
     def get(self, request, article_id):
         result = es.get(index="article", id=article_id)
-        # 是否需要 read_num+1
+        article = result['_source']
+        update_body = {
+            "doc": {
+                "read_num": article['read_num'] + 1
+            }
+        }
+        es.update(index="article", id=article_id, body=update_body)
         user = request.user
         browse_record_data = {
             'user': user.uid,
@@ -76,7 +82,8 @@ class SearchArticle(APIView):
             "query": {
                 "multi_match": {
                     "query": keyword,
-                    "fields": ["title_en", "title_cn", "content_en", "content_cn"]
+                    "fields": ["title_en", "title_cn", "content_en", "content_cn", "tags", "summary",
+                               "homepage_image_description_en", "homepage_image_description_cn"]
                 }
             }
         }
@@ -84,14 +91,12 @@ class SearchArticle(APIView):
         articles = result['hits']['hits']
         return JsonResponse({'articles': articles})
 
-class SummaryArticle(APIView):
+class ExplainWord(APIView):
     @login_required
-    def post(self, request, article_id):
-        result = es.get(index="article", id=article_id)
-        article = result['_source']
-        title = article['title_en']
+    def post(self, request):
+        word = request.GET.get('word')
         url = "http://172.16.26.4:6667/chat/"
-        query = {"text": title}
+        query = {"text": word}
         data = {}
         response = requests.post(url, json=query)
         if response.status_code == 200:
@@ -101,5 +106,3 @@ class SummaryArticle(APIView):
             data['status'] = response.status_code
             data['result'] = response.text
         return JsonResponse(data)
-
-

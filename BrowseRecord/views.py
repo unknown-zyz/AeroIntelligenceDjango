@@ -4,8 +4,6 @@ from elasticsearch import Elasticsearch
 from rest_framework import generics, status
 from rest_framework.response import Response
 
-from News.models import News
-from News.serializers import NewsSerializer
 from Tools.LoginCheck import login_required
 from .models import BrowseRecord
 from .serializers import BrowseRecordSerializer

@@ -39,9 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "User",
-    "News",
     "BrowseRecord",
-    "Tag",
     "Article",
 ]
 
