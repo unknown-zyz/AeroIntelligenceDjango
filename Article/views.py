@@ -16,6 +16,9 @@ class ArticleListOrderedByDate(APIView):
         query = {
             "from": from_record,
             "size": page_size,
+            "_source": {
+                "excludes": ["content_en", "content_cn", "images", "tables"]
+            },
             "query": {
                 "match_all": {}
             },
@@ -36,6 +39,9 @@ class ArticleListOrderedByRead(APIView):
     def get(self, request):
         query = {
             "size": 10,
+            "_source": {
+                "excludes": ["content_en", "content_cn", "images", "tables"]
+            },
             "query": {
                 "match_all": {}
             },
@@ -54,12 +60,17 @@ class ArticleListOrderedByRead(APIView):
 
 class ArticleDetail(APIView):
     @login_required
-    def get(self, request, article_id):
+    def get(self, request):
+        article_id = request.GET.get('article_id')
         result = es.get(index="article", id=article_id)
         article = result['_source']
+        if 'read_num' not in article:
+            article['read_num'] = 1
+        else:
+            article['read_num'] += 1
         update_body = {
             "doc": {
-                "read_num": article['read_num'] + 1
+                "read_num": article['read_num']
             }
         }
         es.update(index="article", id=article_id, body=update_body)
@@ -71,12 +82,12 @@ class ArticleDetail(APIView):
         browse_record_serializer = BrowseRecordSerializer(data=browse_record_data)
         if browse_record_serializer.is_valid():
             browse_record_serializer.save()
-        return JsonResponse(result['_source'])
+        return JsonResponse(article)
 
 
 class SearchArticle(APIView):
     @login_required
-    def post(self, request):
+    def get(self, request):
         keyword = request.GET.get('keyword')
         query = {
             "query": {
@@ -93,7 +104,7 @@ class SearchArticle(APIView):
 
 class ExplainWord(APIView):
     @login_required
-    def post(self, request):
+    def get(self, request):
         word = request.GET.get('word')
         url = "http://172.16.26.4:6667/chat/"
         query = {"text": word}

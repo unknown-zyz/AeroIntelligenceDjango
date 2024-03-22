@@ -20,7 +20,18 @@ class BrowseRecordList(generics.ListAPIView):
         for record in data:
             article_id = record['article_id']
             es = Elasticsearch(['http://localhost:9200'])
-            record['article'] = es.get(index="article", id=article_id)
+            query = {
+                "query": {
+                    "ids": {
+                        "values": [article_id]
+                    }
+                },
+                "_source": {
+                    "excludes": ["content_en", "content_cn", "images", "tables"]
+                }
+            }
+            record['article'] = es.search(index="article", body=query)
+            # record['article'] = es.get(index="article", id=article_id)
             timestamp_str = record['timestamp']
             timestamp_obj = datetime.strptime(timestamp_str, '%Y-%m-%dT%H:%M:%S.%f%z')
             record['timestamp'] = timestamp_obj.strftime('%Y-%m-%d %H:%M:%S')
