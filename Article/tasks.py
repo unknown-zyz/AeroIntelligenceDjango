@@ -56,7 +56,7 @@ def update(day):
     articles = result['hits']['hits']
     for article in articles:
         source = article['_source']
-        article_id = source[]
+        article_id = source['_id']      # todo:检查
         print(article_id)
         if 'content_cn' not in source:
             # todo:存的时候是否要转成数组

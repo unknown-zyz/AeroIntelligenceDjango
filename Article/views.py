@@ -12,17 +12,22 @@ es = Elasticsearch(['http://localhost:9200'])
 
 class ArticleListOrderedByDate(APIView):
     def get(self, request):
-        page = int(request.GET.get('page', 1))
-        page_size = 10
-        from_record = (page - 1) * page_size
+        # page = int(request.GET.get('page', 1))
+        # page_size = 10
+        # from_record = (page - 1) * page_size
         query = {
-            "from": from_record,
-            "size": page_size,
+            # "from": from_record,
+            # "size": page_size,
             "_source": {
                 "excludes": ["content_en", "content_cn", "images", "tables"]
             },
             "query": {
-                "match_all": {}
+                "range": {
+                    "publish_date": {
+                        "gte": "now-1d/d",
+                        "lte": "now/d"
+                    }
+                }
             },
             "sort": [
                 {
@@ -120,7 +125,12 @@ class ArticleDetail(APIView):
             article['read_num'] += 1
         update_body = {
             "doc": {
-                "read_num": article['read_num']
+                "read_num": article['read_num'],
+                # todo:后续删掉
+                "content_cn": article['content_en'],
+                "title_cn": article['title_en'],
+                "homepage_image_description_cn": article['homepage_image_description_en'],
+                "summary": article['title_en'],
             }
         }
         es.update(index="article", id=article_id, body=update_body)
@@ -168,7 +178,6 @@ class ExplainWord(APIView):
             data['status'] = response.status_code
             data['result'] = response.text
         return JsonResponse(data)
-
 
 # def update(request):
 #     day = request.GET.get('day')
