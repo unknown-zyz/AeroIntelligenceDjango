@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "User",
     "BrowseRecord",
     "Article",
+    "django_crontab",
 ]
 
 MIDDLEWARE = [
@@ -127,3 +128,7 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+CRONJOBS = [
+    ('@reboot', 'Article.tasks.test', ['3'], {}, '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/django-crontab.log'),
+    ('56 20 * * *', 'Article.tasks.update', ['1'], {}, '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/django-crontab.log'),
+]

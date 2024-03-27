@@ -3,7 +3,9 @@ from elasticsearch import Elasticsearch
 from rest_framework.views import APIView
 import requests
 from BrowseRecord.serializers import BrowseRecordSerializer
+from BrowseRecord.models import BrowseRecord
 from Tools.LoginCheck import login_required
+from collections import Counter
 
 es = Elasticsearch(['http://localhost:9200'])
 
@@ -58,6 +60,54 @@ class ArticleListOrderedByRead(APIView):
         return JsonResponse({'articles': articles})
 
 
+class ArticleRecommend(APIView):
+    @login_required
+    def get(self, request):
+        queryset = BrowseRecord.objects.filter(user_id=request.user.uid).order_by('-timestamp')[:5]
+        serializer = BrowseRecordSerializer(queryset, many=True)
+        article_ids = [record['article_id'] for record in serializer.data]
+        tag_counter = Counter()
+        for article_id in article_ids:
+            result = es.get(index="article", id=article_id)
+            article = result['_source']
+            tags = article['tags']
+            tag_counter.update(tags)
+        top_two_tags = tag_counter.most_common(2)
+        if len(top_two_tags) == 0:
+            return JsonResponse({'articles': []})
+        elif len(top_two_tags) == 1:
+            query = {
+                "size": 5,
+                "_source": {
+                    "excludes": ["content_en", "content_cn", "images", "tables"]
+                },
+                "query": {
+                    "match": {"tags": top_two_tags[0][0]}
+                }
+            }
+            result = es.search(index="article", body=query)
+            articles = result['hits']['hits']
+            return JsonResponse({'articles': articles})
+        elif len(top_two_tags) == 2:
+            query = {
+                "size": 5,
+                "_source": {
+                    "excludes": ["content_en", "content_cn", "images", "tables"]
+                },
+                "query": {
+                    "bool": {
+                        "should": [
+                            {"match": {"tags": top_two_tags[0][0]}},
+                            {"match": {"tags": top_two_tags[1][0]}}
+                        ]
+                    }
+                }
+            }
+            result = es.search(index="article", body=query)
+            articles = result['hits']['hits']
+            return JsonResponse({'articles': articles})
+
+
 class ArticleDetail(APIView):
     @login_required
     def get(self, request):
@@ -102,11 +152,12 @@ class SearchArticle(APIView):
         articles = result['hits']['hits']
         return JsonResponse({'articles': articles})
 
+
 class ExplainWord(APIView):
     @login_required
     def get(self, request):
         word = request.GET.get('word')
-        url = "http://172.16.26.4:6667/chat/"
+        url = "http://172.16.26.4:6667/explain/"
         query = {"text": word}
         data = {}
         response = requests.post(url, json=query)
@@ -117,3 +168,69 @@ class ExplainWord(APIView):
             data['status'] = response.status_code
             data['result'] = response.text
         return JsonResponse(data)
+
+
+# def update(request):
+#     day = request.GET.get('day')
+#     es = Elasticsearch(['http://localhost:9200'])
+#     translate = "http://172.16.26.4:6667/translate/"
+#     summary = "http://172.16.26.4:6667/summary/"
+#     tag = "http://172.16.26.4:6667/tag/"
+#     # 筛选日期
+#     query = {
+#         "size": 1,
+#         "query": {
+#             "range": {
+#                 "publish_date": {
+#                     "gte": f"now-{day}d/d",
+#                     "lte": "now/d"
+#                 }
+#             },
+#             "bool": {
+#                 "must_not": [
+#                     {
+#                         "exists": {
+#                             "field": "content_cn"
+#                         }
+#                     },
+#                     {
+#                         "exists": {
+#                             "field": "title_cn"
+#                         }
+#                     },
+#                     {
+#                         "exists": {
+#                             "field": "homepage_image_description_cn"
+#                         }
+#                     },
+#                     {
+#                         "exists": {
+#                             "field": "summary"
+#                         }
+#                     },
+#                     {
+#                         "exists": {
+#                             "field": "tags"
+#                         }
+#                     }
+#                 ]
+#             }
+#         }
+#     }
+#     result = es.search(index="article", body=query)
+#     articles = result['hits']['hits']
+#     for article in articles:
+#         source = article['_source']
+#         if 'content_cn' not in source:
+#             # 存的时候是否要转成数组
+#             source['content_cn'] = requests.post(translate, json={"text": ''.join(source['content_en'])})
+#         if 'title_cn' not in source:
+#             source['title_cn'] = requests.post(translate, json={"text": source['title_en']})
+#         if 'homepage_image_description_cn' not in source:
+#             source['homepage_image_description_cn'] = \
+#                 requests.post(translate, json={"text": source['homepage_image_description_en']})
+#         if 'summary' not in source:
+#             source['summary'] = requests.post(summary, json={"text": source['content_cn']})
+#         if 'tags' not in source:
+#             source['tags'] = requests.post(tag, json={"text": source['content_en']})
+#     return JsonResponse({'articles': articles})
