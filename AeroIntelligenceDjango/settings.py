@@ -36,27 +36,22 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_crontab",
+    "corsheaders",
     "User",
     "BrowseRecord",
     "Article",
-    "django_crontab",
-    "corsheaders",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     # "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
-]
-
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173/",
 ]
 
 ROOT_URLCONF = "AeroIntelligenceDjango.urls"
@@ -132,6 +127,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CRONJOBS = [
     ('@reboot', 'Article.tasks.test', ['3'], {},
      '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/django-crontab.log'),
-    ('56 20 * * *', 'Article.tasks.update', ['1'], {},
+    ('38 21 * * *', 'Article.tasks.update', ['3'], {},
      '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/django-crontab.log'),
 ]
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_HEADERS = ('*')
+
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:5173",
+#     "http://127.0.0.1:5173",
+# ]

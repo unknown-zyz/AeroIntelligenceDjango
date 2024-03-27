@@ -67,6 +67,7 @@ class ArticleListOrderedByRead(APIView):
 
 class ArticleRecommend(APIView):
     @login_required
+    # todo:数据有tag后测试
     def get(self, request):
         queryset = BrowseRecord.objects.filter(user_id=request.user.uid).order_by('-timestamp')[:5]
         serializer = BrowseRecordSerializer(queryset, many=True)
@@ -123,14 +124,19 @@ class ArticleDetail(APIView):
             article['read_num'] = 1
         else:
             article['read_num'] += 1
+        # todo:后续删掉
+        # article['content_cn'] = article['content_en']
+        # article['title_cn'] = article['title_en']
+        # article['homepage_image_description_cn'] = article['homepage_image_description_en']
+        # article['summary'] = article['title_en']
         update_body = {
             "doc": {
                 "read_num": article['read_num'],
                 # todo:后续删掉
-                "content_cn": article['content_en'],
-                "title_cn": article['title_en'],
-                "homepage_image_description_cn": article['homepage_image_description_en'],
-                "summary": article['title_en'],
+                # "content_cn": article['content_cn'],
+                # "title_cn": article['title_cn'],
+                # "homepage_image_description_cn": article['homepage_image_description_cn'],
+                # "summary": article['summary'],
             }
         }
         es.update(index="article", id=article_id, body=update_body)
@@ -168,7 +174,7 @@ class ExplainWord(APIView):
     def get(self, request):
         word = request.GET.get('word')
         url = "http://172.16.26.4:6667/explain/"
-        query = {"text": word}
+        query = {"content": word}
         data = {}
         response = requests.post(url, json=query)
         if response.status_code == 200:
@@ -178,6 +184,7 @@ class ExplainWord(APIView):
             data['status'] = response.status_code
             data['result'] = response.text
         return JsonResponse(data)
+
 
 # def update(request):
 #     day = request.GET.get('day')
@@ -189,13 +196,15 @@ class ExplainWord(APIView):
 #     query = {
 #         "size": 1,
 #         "query": {
-#             "range": {
-#                 "publish_date": {
-#                     "gte": f"now-{day}d/d",
-#                     "lte": "now/d"
-#                 }
-#             },
 #             "bool": {
+#                 "must": {
+#                     "range": {
+#                         "publish_date": {
+#                             "gte": "now-7d/d",
+#                             "lte": "now/d"
+#                         }
+#                     }
+#                 },
 #                 "must_not": [
 #                     {
 #                         "exists": {
@@ -226,20 +235,37 @@ class ExplainWord(APIView):
 #             }
 #         }
 #     }
+#
 #     result = es.search(index="article", body=query)
 #     articles = result['hits']['hits']
 #     for article in articles:
 #         source = article['_source']
+#         article_id = source['url']
+#         print(article_id)
 #         if 'content_cn' not in source:
-#             # 存的时候是否要转成数组
-#             source['content_cn'] = requests.post(translate, json={"text": ''.join(source['content_en'])})
+#             # todo:存的时候是否要转成数组
+#             source['content_cn'] = requests.post(translate, json={"content": ''.join(source['content_en'])}).json()['result']
 #         if 'title_cn' not in source:
-#             source['title_cn'] = requests.post(translate, json={"text": source['title_en']})
+#             source['title_cn'] = requests.post(translate, json={"content": source['title_en']}).json()['result']
 #         if 'homepage_image_description_cn' not in source:
 #             source['homepage_image_description_cn'] = \
-#                 requests.post(translate, json={"text": source['homepage_image_description_en']})
+#                 requests.post(translate, json={"content": source['homepage_image_description_en']}).json()['result']
 #         if 'summary' not in source:
-#             source['summary'] = requests.post(summary, json={"text": source['content_cn']})
+#             source['summary'] = requests.post(summary, json={"content": source['content_cn']}).json()['result']
 #         if 'tags' not in source:
-#             source['tags'] = requests.post(tag, json={"text": source['content_en']})
+#             source['tags'] = requests.post(tag, json={"content": ''.join(source['content_cn'])}).json()['result']
+#         if 'read_num' not in source:
+#             source['read_num'] = 0
+#         update_body = {
+#             "doc": {
+#                 "content_cn": source['content_cn'],
+#                 "title_cn": source['title_cn'],
+#                 "homepage_image_description_cn": source['homepage_image_description_cn'],
+#                 "summary": source['summary'],
+#                 "tags": source['tags'],
+#                 "read_num": source['read_num'],
+#             }
+#         }
+#         es.update(index="article", id=article_id, body=update_body)
+#     print("-------------\n")
 #     return JsonResponse({'articles': articles})
