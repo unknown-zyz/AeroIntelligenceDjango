@@ -2,8 +2,10 @@ from time import strftime, localtime
 import requests
 from elasticsearch import Elasticsearch
 
+
 def test(day):
     print(strftime("%Y-%m-%d %H:%M:%S", localtime()) + " " + day)
+
 
 def update(day):
     print(strftime("%Y-%m-%d %H:%M:%S", localtime()))
@@ -58,20 +60,20 @@ def update(day):
         source = article['_source']
         article_id = source['url']
         print(article_id)
-        if 'content_cn' not in source:
-            # todo:存的时候是否要转成数组
-            source['content_cn'] = requests.post(translate, json={"content": ''.join(source['content_en'])})
-        if 'title_cn' not in source:
-            source['title_cn'] = requests.post(translate, json={"content": source['title_en']})
-        if 'homepage_image_description_cn' not in source:
+        if 'content_cn' not in source or not source['content_cn']:
+            source['content_cn'] = splitContent(
+                requests.post(translate, json={"content": ''.join(source['content_en'])}).json()['result'])
+        if 'title_cn' not in source or not source['title_cn']:
+            source['title_cn'] = requests.post(translate, json={"content": source['title_en']}).json()['result']
+        if 'homepage_image_description_cn' not in source or not source['homepage_image_description_cn']:
             source['homepage_image_description_cn'] = \
-                requests.post(translate, json={"content": source['homepage_image_description_en']})
-        if 'summary' not in source:
-            source['summary'] = requests.post(summary, json={"content": source['content_cn']})
-        if 'tags' not in source:
-            source['tags'] = requests.post(tag, json={"content": source['content_cn']})
-            # todo:删冒号，可能有多个tag
-        if 'read_num' not in source:
+                requests.post(translate, json={"content": source['homepage_image_description_en']}).json()['result']
+        if 'summary' not in source or not source['summary']:
+            source['summary'] = requests.post(summary, json={"content": ''.join(source['content_cn'])}).json()['result']
+        if 'tags' not in source or not source['tags']:
+            source['tags'] = splitTags(
+                requests.post(tag, json={"content": ''.join(source['content_cn'])}).json()['result'])
+        if 'read_num' not in source or not source['read_num']:
             source['read_num'] = 0
         update_body = {
             "doc": {
@@ -85,3 +87,15 @@ def update(day):
         }
         es.update(index="article", id=article_id, body=update_body)
     print("-------------\n")
+
+
+def splitContent(string):
+    content = string.split('\n')
+    new_content = [line + '\n' for line in content if line.strip()]
+    return new_content
+
+
+def splitTags(string):
+    _, tags = string.split('：', 1)
+    new_tags = [tag.strip() for tag in tags.split('，')]
+    return new_tags
