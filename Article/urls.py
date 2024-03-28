@@ -8,5 +8,5 @@ urlpatterns = [
     path('detail/', ArticleDetail.as_view()),
     path('search/', SearchArticle.as_view()),
     path('explain/', ExplainWord.as_view()),
-    # path('update/', update),
+    path('update/', update),
 ]

@@ -174,7 +174,7 @@ class ExplainWord(APIView):
     def get(self, request):
         word = request.GET.get('word')
         url = "http://172.16.26.4:6667/explain/"
-        query = {"content": word}  
+        query = {"content": word}
         data = {}
         response = requests.post(url, json=query)
         if response.status_code == 200:
@@ -270,12 +270,16 @@ def update(request):
 
 
 def splitContent(string):
-    content = string.split('\n')
-    new_content = [line + '\n' for line in content if line.strip()]
-    return new_content
+    if '\n' in string:
+        content = string.split('\n')
+        new_content = [line + '\n' for line in content if line.strip()]
+        return new_content
+    return [string]
 
 
 def splitTags(string):
-    _, tags = string.split('：', 1)
-    new_tags = [tag.strip() for tag in tags.split('，')]
-    return new_tags
+    if '：' in string:
+        _, tags = string.split('：', 1)
+        new_tags = [tag.strip() for tag in tags.split('，')]
+        return new_tags
+    return [string]
