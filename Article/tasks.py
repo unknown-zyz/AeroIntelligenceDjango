@@ -4,13 +4,13 @@ from elasticsearch import Elasticsearch
 
 es = Elasticsearch(['http://localhost:9200'])
 
+
 def test(day):
     print(strftime("%Y-%m-%d %H:%M:%S", localtime()) + " " + day)
 
 
 def update(day):
     print(strftime("%Y-%m-%d %H:%M:%S", localtime()))
-
     # query = {
     #     "query": {
     #         "bool": {
@@ -50,12 +50,9 @@ def update(day):
     #                 }
     #             ]
     #         }
-    #     }
+    #     },
+    #     "size": 100,
     # }
-    # result = es.search(index="article", body=query)
-    # articles = result['hits']['hits']
-    # processArticles(articles)
-
     query = {
         "query": {
             "bool": {
@@ -67,30 +64,40 @@ def update(day):
                         }
                     }
                 },
-                "must_not": [
+                "should": [
                     {
-                        "exists": {
-                            "field": "content_cn"
+                        "bool": {
+                            "must_not": {
+                                "exists": {"field": "content_cn"}
+                            }
                         }
                     },
                     {
-                        "exists": {
-                            "field": "title_cn"
+                        "bool": {
+                            "must_not": {
+                                "exists": {"field": "title_cn"}
+                            }
                         }
                     },
                     {
-                        "exists": {
-                            "field": "homepage_image_description_cn"
+                        "bool": {
+                            "must_not": {
+                                "exists": {"field": "homepage_image_description_cn"}
+                            }
                         }
                     },
                     {
-                        "exists": {
-                            "field": "summary"
+                        "bool": {
+                            "must_not": {
+                                "exists": {"field": "summary"}
+                            }
                         }
                     },
                     {
-                        "exists": {
-                            "field": "tags"
+                        "bool": {
+                            "must_not": {
+                                "exists": {"field": "tags"}
+                            }
                         }
                     }
                 ]
@@ -123,6 +130,7 @@ def splitTags(string):
         return new_tags
     return [string]
 
+
 def processArticles(articles):
     translate = "http://172.16.26.4:6667/translate/"
     summary = "http://172.16.26.4:6667/summary/"
@@ -140,7 +148,8 @@ def processArticles(articles):
                     source['content_cn'].append(requests.post(translate, json={"content": content}).json()['result'])
         if 'title_cn' not in source or not source['title_cn']:
             source['title_cn'] = requests.post(translate, json={"content": source['title_en']}).json()['result']
-        if 'homepage_image_description_cn' not in source or not source['homepage_image_description_cn']:
+        if ('homepage_image_description_cn' not in source or not source[
+            'homepage_image_description_cn']) and 'homepage_image_description_en' in source:
             source['homepage_image_description_cn'] = \
                 requests.post(translate, json={"content": source['homepage_image_description_en']}).json()['result']
         if 'summary' not in source or not source['summary']:
@@ -154,10 +163,14 @@ def processArticles(articles):
             "doc": {
                 "content_cn": source['content_cn'],
                 "title_cn": source['title_cn'],
-                "homepage_image_description_cn": source['homepage_image_description_cn'],
                 "summary": source['summary'],
                 "tags": source['tags'],
                 "read_num": source['read_num'],
             }
         }
-        es.update(index="article", id=article_id, body=update_body)
+        if 'homepage_image_description_cn' in source:
+            update_body['doc']['homepage_image_description_cn'] = source['homepage_image_description_cn']
+        try:
+            es.update(index="article", id=article_id, body=update_body)
+        except Exception as e:
+            print(f"Failed to update document with id {article_id}: {e}")

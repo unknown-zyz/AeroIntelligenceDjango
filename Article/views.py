@@ -42,7 +42,7 @@ class ArticleListOrderedByDate(APIView):
         return JsonResponse({'articles': articles})
 
 
-class ArticleListOrderedByRead(APIView):
+class ArticleListOrderedByReadSeven(APIView):
     def get(self, request):
         query = {
             "size": 10,
@@ -50,7 +50,40 @@ class ArticleListOrderedByRead(APIView):
                 "excludes": ["content_en", "content_cn", "images", "tables"]
             },
             "query": {
-                "match_all": {}
+                "range": {
+                    "publish_date": {
+                        "gte": "now-7d/d",
+                        "lte": "now/d"
+                    }
+                }
+            },
+            "sort": [
+                {
+                    "read_num": {
+                        "order": "desc"
+                    }
+                }
+            ]
+        }
+        result = es.search(index="article", body=query)
+        articles = result['hits']['hits']
+        return JsonResponse({'articles': articles})
+
+
+class ArticleListOrderedByReadThirty(APIView):
+    def get(self, request):
+        query = {
+            "size": 10,
+            "_source": {
+                "excludes": ["content_en", "content_cn", "images", "tables"]
+            },
+            "query": {
+                "range": {
+                    "publish_date": {
+                        "gte": "now-30d/d",
+                        "lte": "now/d"
+                    }
+                }
             },
             "sort": [
                 {
@@ -67,7 +100,6 @@ class ArticleListOrderedByRead(APIView):
 
 class ArticleRecommend(APIView):
     @login_required
-    # todo:数据有tag后测试
     def get(self, request):
         queryset = BrowseRecord.objects.filter(user_id=request.user.uid).order_by('-timestamp')[:5]
         serializer = BrowseRecordSerializer(queryset, many=True)
@@ -198,47 +230,99 @@ def update(request):
     translate = "http://172.16.26.4:6667/translate/"
     summary = "http://172.16.26.4:6667/summary/"
     tag = "http://172.16.26.4:6667/tag/"
+    # query = {
+    #     "size": 1,
+    #     "query": {
+    #         "bool": {
+    #             "must": {
+    #                 "range": {
+    #                     "publish_date": {
+    #                         "gte": "now-7d/d",
+    #                         "lte": "now/d"
+    #                     }
+    #                 }
+    #             },
+    #             "must_not": [
+    #                 {
+    #                     "exists": {
+    #                         "field": "content_cn"
+    #                     }
+    #                 },
+    #                 {
+    #                     "exists": {
+    #                         "field": "title_cn"
+    #                     }
+    #                 },
+    #                 {
+    #                     "exists": {
+    #                         "field": "homepage_image_description_cn"
+    #                     }
+    #                 },
+    #                 {
+    #                     "exists": {
+    #                         "field": "summary"
+    #                     }
+    #                 },
+    #                 {
+    #                     "exists": {
+    #                         "field": "tags"
+    #                     }
+    #                 }
+    #             ]
+    #         }
+    #     }
+    # }
     query = {
-        "size": 1,
         "query": {
             "bool": {
                 "must": {
                     "range": {
                         "publish_date": {
-                            "gte": "now-7d/d",
+                            "gte": f"now-{day}d/d",
                             "lte": "now/d"
                         }
                     }
                 },
-                "must_not": [
+                "should": [
                     {
-                        "exists": {
-                            "field": "content_cn"
+                        "bool": {
+                            "must_not": {
+                                "exists": {"field": "content_cn"}
+                            }
                         }
                     },
                     {
-                        "exists": {
-                            "field": "title_cn"
+                        "bool": {
+                            "must_not": {
+                                "exists": {"field": "title_cn"}
+                            }
                         }
                     },
                     {
-                        "exists": {
-                            "field": "homepage_image_description_cn"
+                        "bool": {
+                            "must_not": {
+                                "exists": {"field": "homepage_image_description_cn"}
+                            }
                         }
                     },
                     {
-                        "exists": {
-                            "field": "summary"
+                        "bool": {
+                            "must_not": {
+                                "exists": {"field": "summary"}
+                            }
                         }
                     },
                     {
-                        "exists": {
-                            "field": "tags"
+                        "bool": {
+                            "must_not": {
+                                "exists": {"field": "tags"}
+                            }
                         }
                     }
                 ]
             }
-        }
+        },
+        "size": 100,
     }
     result = es.search(index="article", body=query)
     articles = result['hits']['hits']
