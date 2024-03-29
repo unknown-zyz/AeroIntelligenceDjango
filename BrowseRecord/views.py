@@ -27,7 +27,7 @@ class BrowseRecordList(generics.ListAPIView):
                     }
                 },
                 "_source": {
-                    "excludes": ["content_en", "content_cn", "images", "tables"]
+                    "includes": ["title_cn", "url"]
                 }
             }
             result = es.search(index="article", body=query)

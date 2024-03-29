@@ -176,6 +176,23 @@ class ExplainWord(APIView):
         return JsonResponse(data)
 
 
+class Chat(APIView):
+    @login_required
+    def get(self, request):
+        text = request.GET.get('text')
+        url = "http://172.16.26.4:6667/chat/"
+        query = {"content": text}
+        data = {}
+        response = requests.post(url, json=query)
+        if response.status_code == 200:
+            result = response.json()
+            data['result'] = result['result']
+        else:
+            data['status'] = response.status_code
+            data['result'] = response.text
+        return JsonResponse(data)
+
+
 def update(request):
     es = Elasticsearch(['http://localhost:9200'])
     translate = "http://172.16.26.4:6667/translate/"
