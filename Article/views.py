@@ -124,19 +124,9 @@ class ArticleDetail(APIView):
             article['read_num'] = 1
         else:
             article['read_num'] += 1
-        # todo:后续删掉
-        # article['content_cn'] = article['content_en']
-        # article['title_cn'] = article['title_en']
-        # article['homepage_image_description_cn'] = article['homepage_image_description_en']
-        # article['summary'] = article['title_en']
         update_body = {
             "doc": {
                 "read_num": article['read_num'],
-                # todo:后续删掉
-                # "content_cn": article['content_cn'],
-                # "title_cn": article['title_cn'],
-                # "homepage_image_description_cn": article['homepage_image_description_cn'],
-                # "summary": article['summary'],
             }
         }
         es.update(index="article", id=article_id, body=update_body)
@@ -240,8 +230,12 @@ def update(request):
         article_id = source['url']
         print(article_id)
         if 'content_cn' not in source or not source['content_cn']:
-            source['content_cn'] = splitContent(
-                requests.post(translate, json={"content": ''.join(source['content_en'])}).json()['result'])
+            source['content_cn'] = []
+            for content in source['content_en']:
+                if (content.startswith('<image') or content.startswith('<table')) and content.endswith('>'):
+                    source['content_cn'].append(content)
+                else:
+                    source['content_cn'].append(requests.post(translate, json={"content": content}).json()['result'])
         if 'title_cn' not in source or not source['title_cn']:
             source['title_cn'] = requests.post(translate, json={"content": source['title_en']}).json()['result']
         if 'homepage_image_description_cn' not in source or not source['homepage_image_description_cn']:
@@ -269,17 +263,15 @@ def update(request):
     return JsonResponse({'articles': articles})
 
 
-def splitContent(string):
-    if '\n' in string:
-        content = string.split('\n')
-        new_content = [line + '\n' for line in content if line.strip()]
-        return new_content
-    return [string]
-
-
 def splitTags(string):
     if '：' in string:
         _, tags = string.split('：', 1)
-        new_tags = [tag.strip() for tag in tags.split('，')]
+        new_tags = []
+        tags_list = tags.split('，')
+        for tag in tags_list:
+            if tag in ['NGAD', '人工智能', '军情前沿', '先进技术', '武器装备', '俄乌战争', '生态构建', '人物故事']:
+                new_tags.append(tag)
+            else:
+                new_tags.append('其他')
         return new_tags
     return [string]
