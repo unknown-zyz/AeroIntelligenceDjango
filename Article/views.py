@@ -278,7 +278,7 @@ def update(request):
                 "must": {
                     "range": {
                         "publish_date": {
-                            "gte": f"now-{day}d/d",
+                            "gte": "now-7d/d",
                             "lte": "now/d"
                         }
                     }
@@ -322,7 +322,7 @@ def update(request):
                 ]
             }
         },
-        "size": 100,
+        "size": 1,
     }
     result = es.search(index="article", body=query)
     articles = result['hits']['hits']

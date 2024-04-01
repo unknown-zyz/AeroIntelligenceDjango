@@ -117,20 +117,6 @@ def update(day):
     print("-------------\n")
 
 
-def splitTags(string):
-    if '：' in string:
-        _, tags = string.split('：', 1)
-        new_tags = []
-        tags_list = tags.split('，')
-        for tag in tags_list:
-            if tag in ['NGAD', '人工智能', '军情前沿', '先进技术', '武器装备', '俄乌战争', '生态构建', '人物故事']:
-                new_tags.append(tag)
-            else:
-                new_tags.append('其他')
-        return new_tags
-    return [string]
-
-
 def processArticles(articles):
     translate = "http://172.16.26.4:6667/translate/"
     summary = "http://172.16.26.4:6667/summary/"
@@ -152,11 +138,12 @@ def processArticles(articles):
             'homepage_image_description_cn']) and 'homepage_image_description_en' in source:
             source['homepage_image_description_cn'] = \
                 requests.post(translate, json={"content": source['homepage_image_description_en']}).json()['result']
+        content_cn = joinContent(source['content_cn'])
         if 'summary' not in source or not source['summary']:
-            source['summary'] = requests.post(summary, json={"content": ''.join(source['content_cn'])}).json()['result']
+            source['summary'] = requests.post(summary, json={"content": content_cn}).json()['result']
         if 'tags' not in source or not source['tags']:
             source['tags'] = splitTags(
-                requests.post(tag, json={"content": ''.join(source['content_cn'])}).json()['result'])
+                requests.post(tag, json={"content": content_cn}).json()['result'])
         if 'read_num' not in source or not source['read_num']:
             source['read_num'] = 0
         update_body = {
@@ -174,3 +161,29 @@ def processArticles(articles):
             es.update(index="article", id=article_id, body=update_body)
         except Exception as e:
             print(f"Failed to update document with id {article_id}: {e}")
+
+
+def splitTags(string):
+    if '：' in string:
+        _, tags = string.split('：', 1)
+        new_tags = []
+        tags_list = tags.split('，')
+        for tag in tags_list:
+            if tag in ['NGAD', '人工智能', '军情前沿', '先进技术', '武器装备', '俄乌战争', '生态构建', '人物故事']:
+                new_tags.append(tag)
+            else:
+                new_tags.append('其他')
+        return new_tags
+    return [string]
+
+
+def joinContent(contents):
+    result = []
+    for content in contents:
+        if(content.startswith('<image') or content.startswith('<table')) and content.endswith('>'):
+            continue
+        else:
+            result.append(content)
+    return ''.join(result)
+
+
