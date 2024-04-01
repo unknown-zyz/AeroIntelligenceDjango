@@ -103,7 +103,7 @@ def update(day):
                 ]
             }
         },
-        "size": 100,
+        "size": 1000,
     }
     result = es.search(index="article", body=query, scroll="1m")
     scroll_id = result['_scroll_id']

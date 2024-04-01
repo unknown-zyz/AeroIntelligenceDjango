@@ -34,6 +34,11 @@ class ArticleListOrderedByDate(APIView):
                     "publish_date": {
                         "order": "desc"
                     }
+                },
+                {
+                    "url": {
+                        "order": "desc"
+                    }
                 }
             ]
         }
