@@ -83,6 +83,9 @@ def update(day):
                         "bool": {
                             "must_not": {
                                 "exists": {"field": "homepage_image_description_cn"}
+                            },
+                            "must": {
+                                "exists": {"field": "homepage_image_description_en"}
                             }
                         }
                     },
@@ -118,31 +121,38 @@ def update(day):
 
 
 def updateHomeImage(day):
+    day = 30
     query = {
         "query": {
             "bool": {
-                "must": {
-                    "range": {
-                        "publish_date": {
-                            "gte": f"now-{day}d/d",
-                            "lte": "now/d"
+                "must": [
+                    {
+                        "range": {
+                            "publish_date": {
+                                "gte": f"now-{day}d/d",
+                                "lte": "now/d"
+                            }
                         }
                     },
-                    "exists": {
-                        "field": "homepage_image"
+                    {
+                        "exists": {
+                            "field": "homepage_image"
+                        }
+                    },
+                    {
+                        "term": {
+                            "homepage_image": ""
+                        }
                     }
-                },
-                "must_not": {
-                    "term": {
-                        "homepage_image": ""
-                    }
-                }
+                ]
             }
-        }
+        },
+        "size": 1000
     }
     result = es.search(index="article", body=query)
     for article in result['hits']['hits']:
         source = article['_source']
+        print(source['url'])
         source['homepage_image'] = "image/default.jpg"
         update_body = {
             "doc": {
@@ -178,11 +188,12 @@ def processArticles(articles):
             source['homepage_image_description_cn'] = \
                 requests.post(translate, json={"content": source['homepage_image_description_en']}).json()['result']
         content_cn = joinContent(source['content_cn'])
-        if 'summary' not in source or not source['summary']:
-            source['summary'] = requests.post(summary, json={"content": content_cn}).json()['result']
-        if 'tags' not in source or not source['tags']:
-            source['tags'] = splitTags(
-                requests.post(tag, json={"content": content_cn}).json()['result'])
+        if len(content_cn) < 5000:
+            if 'summary' not in source or not source['summary']:
+                source['summary'] = requests.post(summary, json={"content": content_cn}).json()['result']
+            if 'tags' not in source or not source['tags']:
+                source['tags'] = splitTags(
+                    requests.post(tag, json={"content": content_cn}).json()['result'])
         if 'read_num' not in source or not source['read_num']:
             source['read_num'] = 0
         update_body = {
