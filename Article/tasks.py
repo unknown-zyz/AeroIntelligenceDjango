@@ -117,6 +117,44 @@ def update(day):
     print("-------------\n")
 
 
+def updateHomeImage(day):
+    query = {
+        "query": {
+            "bool": {
+                "must": {
+                    "range": {
+                        "publish_date": {
+                            "gte": f"now-{day}d/d",
+                            "lte": "now/d"
+                        }
+                    },
+                    "exists": {
+                        "field": "homepage_image"
+                    }
+                },
+                "must_not": {
+                    "term": {
+                        "homepage_image": ""
+                    }
+                }
+            }
+        }
+    }
+    result = es.search(index="article", body=query)
+    for article in result['hits']['hits']:
+        source = article['_source']
+        source['homepage_image'] = "image/default.jpg"
+        update_body = {
+            "doc": {
+                "homepage_image": source['homepage_image']
+            }
+        }
+        try:
+            es.update(index="article", id=source['url'], body=update_body)
+        except Exception as e:
+            print(f"Failed to update document with id {article['_id']}: {e}")
+
+
 def processArticles(articles):
     translate = "http://172.16.26.4:6667/translate/"
     summary = "http://172.16.26.4:6667/summary/"
@@ -131,7 +169,8 @@ def processArticles(articles):
                 if (content.startswith('<image') or content.startswith('<table')) and content.endswith('>'):
                     source['content_cn'].append(content)
                 else:
-                    source['content_cn'].append(requests.post(translate, json={"content": content}).json()['result'])
+                    source['content_cn'].append(
+                        requests.post(translate, json={"content": content}).json()['result'])
         if 'title_cn' not in source or not source['title_cn']:
             source['title_cn'] = requests.post(translate, json={"content": source['title_en']}).json()['result']
         if ('homepage_image_description_cn' not in source or not source[
@@ -180,10 +219,8 @@ def splitTags(string):
 def joinContent(contents):
     result = []
     for content in contents:
-        if(content.startswith('<image') or content.startswith('<table')) and content.endswith('>'):
+        if (content.startswith('<image') or content.startswith('<table')) and content.endswith('>'):
             continue
         else:
             result.append(content)
     return ''.join(result)
-
-
