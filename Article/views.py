@@ -103,6 +103,37 @@ class ArticleListOrderedByReadThirty(APIView):
         return JsonResponse({'articles': articles})
 
 
+class ArticleListByTag(APIView):
+    def get(self, request):
+        tag = request.GET.get('tag')
+        tag_map = {
+            1: 'NGAD',
+            2: '人工智能',
+            3: '军情前沿',
+            4: '先进技术',
+            5: '武器装备',
+            6: '俄乌战争',
+            7: '生态构建',
+            8: '人物故事',
+            9: '其他'
+        }
+        tag = tag_map[int(tag)]
+        query = {
+            "size": 100,
+            "_source": {
+                "excludes": ["content_en", "content_cn", "images", "tables"]
+            },
+            "query": {
+                "terms": {
+                    "tags": [tag]
+                }
+            }
+        }
+        result = es.search(index="article", body=query)
+        articles = result['hits']['hits']
+        return JsonResponse({'articles': articles})
+
+
 class ArticleRecommend(APIView):
     @login_required
     def get(self, request):

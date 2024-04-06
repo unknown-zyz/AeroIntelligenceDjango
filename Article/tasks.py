@@ -53,6 +53,7 @@ def update(day):
     #     },
     #     "size": 100,
     # }
+    # todo: query有bug
     query = {
         "query": {
             "bool": {
@@ -103,10 +104,12 @@ def update(day):
                             }
                         }
                     }
-                ]
+                ],
+                "minimum_should_match": 1
             }
         },
         "size": 1000,
+
     }
     result = es.search(index="article", body=query, scroll="1m")
     scroll_id = result['_scroll_id']
@@ -121,7 +124,7 @@ def update(day):
 
 
 def updateHomeImage(day):
-    day = 30
+    day = 60
     query = {
         "query": {
             "bool": {
@@ -216,15 +219,16 @@ def processArticles(articles):
 def splitTags(string):
     if '：' in string:
         _, tags = string.split('：', 1)
-        new_tags = []
-        tags_list = tags.split('，')
-        for tag in tags_list:
-            if tag in ['NGAD', '人工智能', '军情前沿', '先进技术', '武器装备', '俄乌战争', '生态构建', '人物故事']:
-                new_tags.append(tag)
-            else:
-                new_tags.append('其他')
-        return new_tags
-    return [string]
+    else:
+        tags = string
+    new_tags = []
+    tags_list = tags.split('，')
+    for tag in tags_list:
+        if tag in ['NGAD', '人工智能', '军情前沿', '先进技术', '武器装备', '俄乌战争', '生态构建', '人物故事']:
+            new_tags.append(tag)
+        else:
+            new_tags.append('其他')
+    return new_tags
 
 
 def joinContent(contents):
