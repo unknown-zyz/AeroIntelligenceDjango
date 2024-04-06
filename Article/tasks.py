@@ -109,7 +109,6 @@ def update(day):
             }
         },
         "size": 1000,
-
     }
     result = es.search(index="article", body=query, scroll="1m")
     scroll_id = result['_scroll_id']
@@ -166,6 +165,7 @@ def updateHomeImage(day):
             es.update(index="article", id=source['url'], body=update_body)
         except Exception as e:
             print(f"Failed to update document with id {article['_id']}: {e}")
+    print("-------------\n")
 
 
 def processArticles(articles):
@@ -197,6 +197,9 @@ def processArticles(articles):
             if 'tags' not in source or not source['tags']:
                 source['tags'] = splitTags(
                     requests.post(tag, json={"content": content_cn}).json()['result'])
+        else:
+            source['summary'] = ""
+            source['tags'] = []
         if 'read_num' not in source or not source['read_num']:
             source['read_num'] = 0
         update_body = {
