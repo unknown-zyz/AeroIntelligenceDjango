@@ -21,8 +21,8 @@ def userRegister(request):
         return JsonResponse({'code': 400, 'message': "手机号已存在", 'data': {}})
     elif password != confirm_password:
         return JsonResponse({'code': 400, 'message': "两次密码不同", 'data': {}})
-    elif not re.match('^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{5,18}$', password):  # 密码为5-18位字母和数字的组合
-        return JsonResponse({'code': 400, 'message': "密码不合法", 'data': {}})
+    # elif not re.match('^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{5,18}$', password):  # 密码为5-18位字母和数字的组合
+    #     return JsonResponse({'code': 400, 'message': "密码不合法", 'data': {}})
     try:
         new_user = User(phone=phone, password=make_password(password))
         new_user.save()
