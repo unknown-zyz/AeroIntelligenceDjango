@@ -129,9 +129,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CRONJOBS = [
     ('@reboot', 'Article.tasks.test', ['3'], {},
      '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/test.log'),
-    ('1 15 * * *', 'Article.tasks.update', ['30'], {},
+    ('1 15 * * *', 'Article.tasks.update', ['60'], {},
      '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/update.log'),
-    ('1 15 * * *', 'Article.tasks.updateHomeImage', ['30'], {},
+    ('1 15 * * *', 'Article.tasks.updateHomeImage', ['60'], {},
      '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/updateImage.log'),
 ]
 

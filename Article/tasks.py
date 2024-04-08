@@ -123,7 +123,7 @@ def update(day):
 
 
 def updateHomeImage(day):
-    day = 60
+    print(strftime("%Y-%m-%d %H:%M:%S", localtime()))
     query = {
         "query": {
             "bool": {
@@ -222,10 +222,12 @@ def processArticles(articles):
 def splitTags(string):
     if '：' in string:
         _, tags = string.split('：', 1)
+    elif ':' in string:
+        _, tags = string.split(':', 1)
     else:
         tags = string
     new_tags = []
-    tags_list = tags.split('，')
+    tags_list = tags.split(',')
     for tag in tags_list:
         if tag in ['NGAD', '人工智能', '军情前沿', '先进技术', '武器装备', '俄乌战争', '生态构建', '人物故事']:
             new_tags.append(tag)
@@ -233,7 +235,7 @@ def splitTags(string):
             new_tags.append(tag[1:-1])
         else:
             new_tags.append('其他')
-    return new_tags
+    return list(set(new_tags))
 
 
 def joinContent(contents):
