@@ -137,10 +137,10 @@ CRONJOBS = [
      '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/update.log'),
     ('30 12-16 * * *', 'Article.tasks.updateHomeImage', ['60'], {},
      '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/updateImage.log'),
-    ('30 12-16 * * *', 'Article.tasks.update', ['60'], {},
-     '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/update.log'),
-    ('30 12-16 * * *', 'Article.tasks.updateHomeImage', ['60'], {},
-     '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/updateImage.log'),
+    # ('30 12-16 * * *', 'Article.tasks.update', ['60'], {},
+    #  '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/update.log'),
+    # ('30 12-16 * * *', 'Article.tasks.updateHomeImage', ['60'], {},
+    #  '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/updateImage.log'),
 ]
 
 CORS_ALLOW_CREDENTIALS = True

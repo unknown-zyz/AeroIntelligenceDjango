@@ -189,7 +189,7 @@ def processArticles(articles):
                     source['content_cn'].append(content)
                 else:
                     source['content_cn'].append(
-                        requests.post(translate, json={"content": content}).json()['result'])
+                        spiltTrans(requests.post(translate, json={"content": content}).json()['result']))
         if ('title_cn' not in source or not source['title_cn']) and 'title_en' in source:
             source['title_cn'] = requests.post(translate, json={"content": source['title_en']}).json()['result']
         if ('homepage_image_description_cn' not in source or not source[
@@ -225,6 +225,13 @@ def processArticles(articles):
         except Exception as e:
             print(f"Failed to update document with id {article_id}: {e}")
 
+def spiltTrans(string):
+    content = string
+    if '：' in string:
+        _, content = string.split('：', 1)
+    elif ':' in string:
+        _, content = string.split(':', 1)
+    return content
 
 def splitTags(string):
     if '：' in string:
