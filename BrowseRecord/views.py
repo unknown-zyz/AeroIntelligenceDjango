@@ -45,8 +45,8 @@ class BrowseRecordDestroy(generics.DestroyAPIView):
     @login_required
     def destroy(self, request, *args, **kwargs):
         try:
-            instance = self.get_queryset().get(pk=kwargs['pk'], user_id=request.user.uid)
-            self.perform_destroy(instance)
+            records = self.get_queryset().filter(user_id=request.user.uid)
+            records.delete()
             return Response({'Destroy success'}, status=status.HTTP_204_NO_CONTENT)
         except BrowseRecord.DoesNotExist:
             return Response({'error': 'Record does not exist'}, status=status.HTTP_404_NOT_FOUND)
