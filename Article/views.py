@@ -261,143 +261,143 @@ class Chat(APIView):
         return JsonResponse(data)
 
 
-def update(request):
-    es = Elasticsearch(['http://localhost:9200'])
-    translate = "http://172.16.26.4:6667/translate/"
-    summary = "http://172.16.26.4:6667/summary/"
-    tag = "http://172.16.26.4:6667/tag/"
-    # query = {
-    #     "size": 1,
-    #     "query": {
-    #         "bool": {
-    #             "must": {
-    #                 "range": {
-    #                     "publish_date": {
-    #                         "gte": "now-7d/d",
-    #                         "lte": "now/d"
-    #                     }
-    #                 }
-    #             },
-    #             "must_not": [
-    #                 {
-    #                     "exists": {
-    #                         "field": "content_cn"
-    #                     }
-    #                 },
-    #                 {
-    #                     "exists": {
-    #                         "field": "title_cn"
-    #                     }
-    #                 },
-    #                 {
-    #                     "exists": {
-    #                         "field": "homepage_image_description_cn"
-    #                     }
-    #                 },
-    #                 {
-    #                     "exists": {
-    #                         "field": "summary"
-    #                     }
-    #                 },
-    #                 {
-    #                     "exists": {
-    #                         "field": "tags"
-    #                     }
-    #                 }
-    #             ]
-    #         }
-    #     }
-    # }
-    query = {
-        "query": {
-            "bool": {
-                "must": {
-                    "range": {
-                        "publish_date": {
-                            "gte": "now-7d/d",
-                            "lte": "now/d"
-                        }
-                    }
-                },
-                "should": [
-                    {
-                        "bool": {
-                            "must_not": {
-                                "exists": {"field": "content_cn"}
-                            }
-                        }
-                    },
-                    {
-                        "bool": {
-                            "must_not": {
-                                "exists": {"field": "title_cn"}
-                            }
-                        }
-                    },
-                    {
-                        "bool": {
-                            "must_not": {
-                                "exists": {"field": "homepage_image_description_cn"}
-                            }
-                        }
-                    },
-                    {
-                        "bool": {
-                            "must_not": {
-                                "exists": {"field": "summary"}
-                            }
-                        }
-                    },
-                    {
-                        "bool": {
-                            "must_not": {
-                                "exists": {"field": "tags"}
-                            }
-                        }
-                    }
-                ]
-            }
-        },
-        "size": 1,
-    }
-    result = es.search(index="article", body=query)
-    articles = result['hits']['hits']
-    for article in articles:
-        source = article['_source']
-        article_id = source['url']
-        print(article_id)
-        if 'content_cn' not in source or not source['content_cn']:
-            source['content_cn'] = []
-            for content in source['content_en']:
-                if (content.startswith('<image') or content.startswith('<table')) and content.endswith('>'):
-                    source['content_cn'].append(content)
-                else:
-                    source['content_cn'].append(requests.post(translate, json={"content": content}).json()['result'])
-        if 'title_cn' not in source or not source['title_cn']:
-            source['title_cn'] = requests.post(translate, json={"content": source['title_en']}).json()['result']
-        if 'homepage_image_description_cn' not in source or not source['homepage_image_description_cn']:
-            source['homepage_image_description_cn'] = \
-                requests.post(translate, json={"content": source['homepage_image_description_en']}).json()['result']
-        if 'summary' not in source or not source['summary']:
-            source['summary'] = requests.post(summary, json={"content": ''.join(source['content_cn'])}).json()['result']
-        if 'tags' not in source or not source['tags']:
-            source['tags'] = splitTags(
-                requests.post(tag, json={"content": ''.join(source['content_cn'])}).json()['result'])
-        if 'read_num' not in source or not source['read_num']:
-            source['read_num'] = 0
-        update_body = {
-            "doc": {
-                "content_cn": source['content_cn'],
-                "title_cn": source['title_cn'],
-                "homepage_image_description_cn": source['homepage_image_description_cn'],
-                "summary": source['summary'],
-                "tags": source['tags'],
-                "read_num": source['read_num'],
-            }
-        }
-        es.update(index="article", id=article_id, body=update_body)
-    print("-------------\n")
-    return JsonResponse({'articles': articles})
+# def update(request):
+#     es = Elasticsearch(['http://localhost:9200'])
+#     translate = "http://172.16.26.4:6667/translate/"
+#     summary = "http://172.16.26.4:6667/summary/"
+#     tag = "http://172.16.26.4:6667/tag/"
+#     # query = {
+#     #     "size": 1,
+#     #     "query": {
+#     #         "bool": {
+#     #             "must": {
+#     #                 "range": {
+#     #                     "publish_date": {
+#     #                         "gte": "now-7d/d",
+#     #                         "lte": "now/d"
+#     #                     }
+#     #                 }
+#     #             },
+#     #             "must_not": [
+#     #                 {
+#     #                     "exists": {
+#     #                         "field": "content_cn"
+#     #                     }
+#     #                 },
+#     #                 {
+#     #                     "exists": {
+#     #                         "field": "title_cn"
+#     #                     }
+#     #                 },
+#     #                 {
+#     #                     "exists": {
+#     #                         "field": "homepage_image_description_cn"
+#     #                     }
+#     #                 },
+#     #                 {
+#     #                     "exists": {
+#     #                         "field": "summary"
+#     #                     }
+#     #                 },
+#     #                 {
+#     #                     "exists": {
+#     #                         "field": "tags"
+#     #                     }
+#     #                 }
+#     #             ]
+#     #         }
+#     #     }
+#     # }
+#     query = {
+#         "query": {
+#             "bool": {
+#                 "must": {
+#                     "range": {
+#                         "publish_date": {
+#                             "gte": "now-7d/d",
+#                             "lte": "now/d"
+#                         }
+#                     }
+#                 },
+#                 "should": [
+#                     {
+#                         "bool": {
+#                             "must_not": {
+#                                 "exists": {"field": "content_cn"}
+#                             }
+#                         }
+#                     },
+#                     {
+#                         "bool": {
+#                             "must_not": {
+#                                 "exists": {"field": "title_cn"}
+#                             }
+#                         }
+#                     },
+#                     {
+#                         "bool": {
+#                             "must_not": {
+#                                 "exists": {"field": "homepage_image_description_cn"}
+#                             }
+#                         }
+#                     },
+#                     {
+#                         "bool": {
+#                             "must_not": {
+#                                 "exists": {"field": "summary"}
+#                             }
+#                         }
+#                     },
+#                     {
+#                         "bool": {
+#                             "must_not": {
+#                                 "exists": {"field": "tags"}
+#                             }
+#                         }
+#                     }
+#                 ]
+#             }
+#         },
+#         "size": 1,
+#     }
+#     result = es.search(index="article", body=query)
+#     articles = result['hits']['hits']
+#     for article in articles:
+#         source = article['_source']
+#         article_id = source['url']
+#         print(article_id)
+#         if 'content_cn' not in source or not source['content_cn']:
+#             source['content_cn'] = []
+#             for content in source['content_en']:
+#                 if (content.startswith('<image') or content.startswith('<table')) and content.endswith('>'):
+#                     source['content_cn'].append(content)
+#                 else:
+#                     source['content_cn'].append(requests.post(translate, json={"content": content}).json()['result'])
+#         if 'title_cn' not in source or not source['title_cn']:
+#             source['title_cn'] = requests.post(translate, json={"content": source['title_en']}).json()['result']
+#         if 'homepage_image_description_cn' not in source or not source['homepage_image_description_cn']:
+#             source['homepage_image_description_cn'] = \
+#                 requests.post(translate, json={"content": source['homepage_image_description_en']}).json()['result']
+#         if 'summary' not in source or not source['summary']:
+#             source['summary'] = requests.post(summary, json={"content": ''.join(source['content_cn'])}).json()['result']
+#         if 'tags' not in source or not source['tags']:
+#             source['tags'] = splitTags(
+#                 requests.post(tag, json={"content": ''.join(source['content_cn'])}).json()['result'])
+#         if 'read_num' not in source or not source['read_num']:
+#             source['read_num'] = 0
+#         update_body = {
+#             "doc": {
+#                 "content_cn": source['content_cn'],
+#                 "title_cn": source['title_cn'],
+#                 "homepage_image_description_cn": source['homepage_image_description_cn'],
+#                 "summary": source['summary'],
+#                 "tags": source['tags'],
+#                 "read_num": source['read_num'],
+#             }
+#         }
+#         es.update(index="article", id=article_id, body=update_body)
+#     print("-------------\n")
+#     return JsonResponse({'articles': articles})
 
 
 def splitTags(string):

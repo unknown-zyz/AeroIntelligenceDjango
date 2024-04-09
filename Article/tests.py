@@ -1,3 +1,5 @@
 from tasks import splitTags
 
-print(splitTags("沿,武器装备,先进技术,其他"))
+source = {"content":"111","title":"222", "summary":"333", "tags":"444", "read_num":"555"}
+
+print(source['tags'])

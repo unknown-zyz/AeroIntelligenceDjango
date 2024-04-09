@@ -70,6 +70,9 @@ def update(day):
                         "bool": {
                             "must_not": {
                                 "exists": {"field": "content_cn"}
+                            },
+                            "must": {
+                                "exists": {"field": "content_en"}
                             }
                         }
                     },
@@ -77,6 +80,9 @@ def update(day):
                         "bool": {
                             "must_not": {
                                 "exists": {"field": "title_cn"}
+                            },
+                            "must": {
+                                "exists": {"field": "title_en"}
                             }
                         }
                     },
@@ -176,7 +182,7 @@ def processArticles(articles):
         source = article['_source']
         article_id = source['url']
         print(article_id)
-        if 'content_cn' not in source or not source['content_cn']:
+        if ('content_cn' not in source or not source['content_cn']) and 'content_en' in source:
             source['content_cn'] = []
             for content in source['content_en']:
                 if (content.startswith('<image') or content.startswith('<table')) and content.endswith('>'):
@@ -184,22 +190,23 @@ def processArticles(articles):
                 else:
                     source['content_cn'].append(
                         requests.post(translate, json={"content": content}).json()['result'])
-        if 'title_cn' not in source or not source['title_cn']:
+        if ('title_cn' not in source or not source['title_cn']) and 'title_en' in source:
             source['title_cn'] = requests.post(translate, json={"content": source['title_en']}).json()['result']
         if ('homepage_image_description_cn' not in source or not source[
             'homepage_image_description_cn']) and 'homepage_image_description_en' in source:
             source['homepage_image_description_cn'] = \
                 requests.post(translate, json={"content": source['homepage_image_description_en']}).json()['result']
         content_cn = joinContent(source['content_cn'])
-        if len(content_cn) < 5000:
+        if len(content_cn) <= 5000:
             if 'summary' not in source or not source['summary']:
                 source['summary'] = requests.post(summary, json={"content": content_cn}).json()['result']
             if 'tags' not in source or not source['tags']:
-                source['tags'] = splitTags(
-                    requests.post(tag, json={"content": content_cn}).json()['result'])
+                source['tags'] = splitTags(requests.post(tag, json={"content": content_cn}).json()['result'])
         else:
-            source['summary'] = ""
-            source['tags'] = []
+            if 'summary' not in source or not source['summary']:
+                source['summary'] = requests.post(summary, json={"content": content_cn[:5000]}).json()['result']
+            if 'tags' not in source or not source['tags']:
+                source['tags'] = splitTags(requests.post(tag, json={"content": source['title_cn']}).json()['result'])
         if 'read_num' not in source or not source['read_num']:
             source['read_num'] = 0
         update_body = {
