@@ -4,5 +4,6 @@ class User(models.Model):
     uid = models.AutoField('uid',primary_key=True)
     phone = models.CharField('phone', default='null', max_length=11)
     password = models.CharField('password', max_length=25)
+    tag_pref = models.JSONField('tag_pref', null=True, blank=True)
 
 

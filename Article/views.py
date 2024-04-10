@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from elasticsearch import Elasticsearch
+from User.models import User
 from rest_framework.views import APIView
 import requests
 from BrowseRecord.serializers import BrowseRecordSerializer
@@ -8,6 +9,7 @@ from Tools.LoginCheck import login_required
 from collections import Counter
 
 es = Elasticsearch(['http://localhost:9200'])
+TAG_LIST = ['NGAD', '人工智能', '军情前沿', '先进技术', '武器装备', '俄乌战争', '生态构建', '人物故事']
 
 
 class ArticleListOrderedByDate(APIView):
@@ -134,52 +136,144 @@ class ArticleListByTag(APIView):
         return JsonResponse({'articles': articles})
 
 
-class ArticleRecommend(APIView):
+# class ArticleRecommend(APIView):
+#     @login_required
+#     def get(self, request):
+#         queryset = BrowseRecord.objects.filter(user_id=request.user.uid).order_by('-timestamp')[:5]
+#         serializer = BrowseRecordSerializer(queryset, many=True)
+#         article_ids = [record['article_id'] for record in serializer.data]
+#         tag_counter = Counter()
+#         for article_id in article_ids:
+#             result = es.get(index="article", id=article_id)
+#             article = result['_source']
+#             tags = article['tags']
+#             tag_counter.update(tags)
+#         top_two_tags = tag_counter.most_common(2)
+#         if len(top_two_tags) == 0:
+#             return JsonResponse({'articles': []})
+#         elif len(top_two_tags) == 1:
+#             query = {
+#                 "size": 5,
+#                 "_source": {
+#                     "excludes": ["content_en", "content_cn", "images", "tables"]
+#                 },
+#                 "query": {
+#                     "match": {"tags": top_two_tags[0][0]}
+#                 }
+#             }
+#             result = es.search(index="article", body=query)
+#             articles = result['hits']['hits']
+#             return JsonResponse({'articles': articles})
+#         elif len(top_two_tags) == 2:
+#             query = {
+#                 "size": 5,
+#                 "_source": {
+#                     "excludes": ["content_en", "content_cn", "images", "tables"]
+#                 },
+#                 "query": {
+#                     "bool": {
+#                         "should": [
+#                             {"match": {"tags": top_two_tags[0][0]}},
+#                             {"match": {"tags": top_two_tags[1][0]}}
+#                         ]
+#                     }
+#                 }
+#             }
+#             result = es.search(index="article", body=query)
+#             articles = result['hits']['hits']
+#             return JsonResponse({'articles': articles})
+
+
+class ArticleRecommendByTagAndUser(APIView):
     @login_required
-    def get(self, request):
-        queryset = BrowseRecord.objects.filter(user_id=request.user.uid).order_by('-timestamp')[:5]
-        serializer = BrowseRecordSerializer(queryset, many=True)
-        article_ids = [record['article_id'] for record in serializer.data]
-        tag_counter = Counter()
-        for article_id in article_ids:
-            result = es.get(index="article", id=article_id)
-            article = result['_source']
-            tags = article['tags']
-            tag_counter.update(tags)
-        top_two_tags = tag_counter.most_common(2)
-        if len(top_two_tags) == 0:
-            return JsonResponse({'articles': []})
-        elif len(top_two_tags) == 1:
-            query = {
-                "size": 5,
-                "_source": {
-                    "excludes": ["content_en", "content_cn", "images", "tables"]
-                },
-                "query": {
-                    "match": {"tags": top_two_tags[0][0]}
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        pref_list = user.tag_pref
+
+        user_list = User.objects.all().values('uid', 'tag_pref')
+        print(user_list)
+        for u in user_list:
+            score = 1.0
+            if u['tag_pref'] is None:
+                u['score'] = score
+                continue
+            for tag in TAG_LIST:
+                if tag in u['tag_pref'] and tag in pref_list:
+                    score += u['tag_pref'][tag] * pref_list[tag]
+            if u['uid'] == user.uid:
+                score = 0
+            u['score'] = score
+        # user_list.sort(key=lambda x: x['score'])
+        user_list = sorted(user_list, key=lambda x: x['score'])
+        uid_list = [u['uid'] for u in user_list[:10]]
+        queryset = BrowseRecord.objects.filter(user__in=uid_list).order_by('-timestamp')[:20]
+        serializer = BrowseRecordSerializer(queryset, many=True).data
+        article_ids = [record['article_id'] for record in serializer]
+        art_list = [art for art in article_ids if not BrowseRecord.objects.filter(user=user, article_id=art).exists()]
+        # print(art_list)
+        query = {
+            "query": {
+                "terms": {
+                    "_id": art_list
                 }
             }
-            result = es.search(index="article", body=query)
-            articles = result['hits']['hits']
-            return JsonResponse({'articles': articles})
-        elif len(top_two_tags) == 2:
-            query = {
-                "size": 5,
-                "_source": {
-                    "excludes": ["content_en", "content_cn", "images", "tables"]
-                },
-                "query": {
-                    "bool": {
-                        "should": [
-                            {"match": {"tags": top_two_tags[0][0]}},
-                            {"match": {"tags": top_two_tags[1][0]}}
-                        ]
+        }
+
+        result = es.search(index="article", body=query)
+        articles = result['hits']['hits']
+
+        query = {
+            "size": 20,
+            "query": {
+                "match_all": {}
+            },
+            "sort": [
+                {
+                    "_script": {
+                        "type": "number",
+                        "script": {
+                            "source": """
+                                            double score = 1.0;
+                                            for (int i = 0; i < params.tags.length; i++) {
+                                                if (params.prefs != null && doc['tags'].value.contains(params.tags[i]) && params.prefs.containsKey(params.tags[i])) {
+                                                    score += params.prefs[params.tags[i]];
+                                                }
+                                            }
+                                            return score * doc['read_num'].value;
+                                        """,
+                            "lang": "painless",
+                            "params": {
+                                "tags": TAG_LIST,
+                                "prefs": pref_list
+                            }
+                        },
+                        "order": "desc"
                     }
                 }
-            }
-            result = es.search(index="article", body=query)
-            articles = result['hits']['hits']
-            return JsonResponse({'articles': articles})
+            ]
+        }
+
+        result = es.search(index="article", body=query)
+        articles += result['hits']['hits']
+        articles = articles[:20]
+        return JsonResponse({'articles': articles})
+
+
+def update_pref(user, tags):
+    pref_list = user.tag_pref
+    # print(pref_list)
+    if pref_list is None:
+        pref_list = {}
+    for tag, pref in pref_list.items():
+        pref_list[tag] = pref * 0.9
+    for tag in tags:
+        if tag in pref_list:
+            pref_list[tag] += 1.0
+        else:
+            pref_list[tag] = 5.0
+    user.tag_pref = pref_list
+    user.save()
+    # print(user.tag_pref)
 
 
 class ArticleDetail(APIView):
@@ -199,6 +293,7 @@ class ArticleDetail(APIView):
         }
         es.update(index="article", id=article_id, body=update_body)
         user = request.user
+        update_pref(user, article['tags'])
         browse_record_data = {
             'user': user.uid,
             'article_id': article_id,
@@ -261,154 +356,3 @@ class Chat(APIView):
         return JsonResponse(data)
 
 
-# def update(request):
-#     es = Elasticsearch(['http://localhost:9200'])
-#     translate = "http://172.16.26.4:6667/translate/"
-#     summary = "http://172.16.26.4:6667/summary/"
-#     tag = "http://172.16.26.4:6667/tag/"
-#     # query = {
-#     #     "size": 1,
-#     #     "query": {
-#     #         "bool": {
-#     #             "must": {
-#     #                 "range": {
-#     #                     "publish_date": {
-#     #                         "gte": "now-7d/d",
-#     #                         "lte": "now/d"
-#     #                     }
-#     #                 }
-#     #             },
-#     #             "must_not": [
-#     #                 {
-#     #                     "exists": {
-#     #                         "field": "content_cn"
-#     #                     }
-#     #                 },
-#     #                 {
-#     #                     "exists": {
-#     #                         "field": "title_cn"
-#     #                     }
-#     #                 },
-#     #                 {
-#     #                     "exists": {
-#     #                         "field": "homepage_image_description_cn"
-#     #                     }
-#     #                 },
-#     #                 {
-#     #                     "exists": {
-#     #                         "field": "summary"
-#     #                     }
-#     #                 },
-#     #                 {
-#     #                     "exists": {
-#     #                         "field": "tags"
-#     #                     }
-#     #                 }
-#     #             ]
-#     #         }
-#     #     }
-#     # }
-#     query = {
-#         "query": {
-#             "bool": {
-#                 "must": {
-#                     "range": {
-#                         "publish_date": {
-#                             "gte": "now-7d/d",
-#                             "lte": "now/d"
-#                         }
-#                     }
-#                 },
-#                 "should": [
-#                     {
-#                         "bool": {
-#                             "must_not": {
-#                                 "exists": {"field": "content_cn"}
-#                             }
-#                         }
-#                     },
-#                     {
-#                         "bool": {
-#                             "must_not": {
-#                                 "exists": {"field": "title_cn"}
-#                             }
-#                         }
-#                     },
-#                     {
-#                         "bool": {
-#                             "must_not": {
-#                                 "exists": {"field": "homepage_image_description_cn"}
-#                             }
-#                         }
-#                     },
-#                     {
-#                         "bool": {
-#                             "must_not": {
-#                                 "exists": {"field": "summary"}
-#                             }
-#                         }
-#                     },
-#                     {
-#                         "bool": {
-#                             "must_not": {
-#                                 "exists": {"field": "tags"}
-#                             }
-#                         }
-#                     }
-#                 ]
-#             }
-#         },
-#         "size": 1,
-#     }
-#     result = es.search(index="article", body=query)
-#     articles = result['hits']['hits']
-#     for article in articles:
-#         source = article['_source']
-#         article_id = source['url']
-#         print(article_id)
-#         if 'content_cn' not in source or not source['content_cn']:
-#             source['content_cn'] = []
-#             for content in source['content_en']:
-#                 if (content.startswith('<image') or content.startswith('<table')) and content.endswith('>'):
-#                     source['content_cn'].append(content)
-#                 else:
-#                     source['content_cn'].append(requests.post(translate, json={"content": content}).json()['result'])
-#         if 'title_cn' not in source or not source['title_cn']:
-#             source['title_cn'] = requests.post(translate, json={"content": source['title_en']}).json()['result']
-#         if 'homepage_image_description_cn' not in source or not source['homepage_image_description_cn']:
-#             source['homepage_image_description_cn'] = \
-#                 requests.post(translate, json={"content": source['homepage_image_description_en']}).json()['result']
-#         if 'summary' not in source or not source['summary']:
-#             source['summary'] = requests.post(summary, json={"content": ''.join(source['content_cn'])}).json()['result']
-#         if 'tags' not in source or not source['tags']:
-#             source['tags'] = splitTags(
-#                 requests.post(tag, json={"content": ''.join(source['content_cn'])}).json()['result'])
-#         if 'read_num' not in source or not source['read_num']:
-#             source['read_num'] = 0
-#         update_body = {
-#             "doc": {
-#                 "content_cn": source['content_cn'],
-#                 "title_cn": source['title_cn'],
-#                 "homepage_image_description_cn": source['homepage_image_description_cn'],
-#                 "summary": source['summary'],
-#                 "tags": source['tags'],
-#                 "read_num": source['read_num'],
-#             }
-#         }
-#         es.update(index="article", id=article_id, body=update_body)
-#     print("-------------\n")
-#     return JsonResponse({'articles': articles})
-
-
-def splitTags(string):
-    if '：' in string:
-        _, tags = string.split('：', 1)
-        new_tags = []
-        tags_list = tags.split('，')
-        for tag in tags_list:
-            if tag in ['NGAD', '人工智能', '军情前沿', '先进技术', '武器装备', '俄乌战争', '生态构建', '人物故事']:
-                new_tags.append(tag)
-            else:
-                new_tags.append('其他')
-        return new_tags
-    return [string]
