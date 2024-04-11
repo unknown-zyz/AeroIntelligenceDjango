@@ -225,6 +225,7 @@ def processArticles(articles):
         except Exception as e:
             print(f"Failed to update document with id {article_id}: {e}")
 
+
 def spiltTrans(string):
     content = string
     if '：' in string:
@@ -232,6 +233,7 @@ def spiltTrans(string):
     elif ':' in string:
         _, content = string.split(':', 1)
     return content
+
 
 def splitTags(string):
     if '：' in string:

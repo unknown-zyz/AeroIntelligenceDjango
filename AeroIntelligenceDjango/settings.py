@@ -24,7 +24,7 @@ SECRET_KEY = "django-insecure-k=uag(1^-kdpgz#a!u9r)j0p=(5nv@n+_u7nec=4&)hw8c0&8e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1','172.16.26.6']
 
 # Application definition
 
@@ -137,10 +137,10 @@ CRONJOBS = [
      '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/update.log'),
     ('30 12-16 * * *', 'Article.tasks.updateHomeImage', ['60'], {},
      '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/updateImage.log'),
-    # ('30 12-16 * * *', 'Article.tasks.update', ['60'], {},
-    #  '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/update.log'),
-    # ('30 12-16 * * *', 'Article.tasks.updateHomeImage', ['60'], {},
-    #  '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/updateImage.log'),
+    ('50 16 * * *', 'Article.tasks.update', ['60'], {},
+     '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/update.log'),
+    ('0 16 * * *', 'Article.tasks.updateHomeImage', ['60'], {},
+     '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/updateImage.log'),
 ]
 
 CORS_ALLOW_CREDENTIALS = True

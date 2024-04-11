@@ -136,54 +136,6 @@ class ArticleListByTag(APIView):
         return JsonResponse({'articles': articles})
 
 
-# class ArticleRecommend(APIView):
-#     @login_required
-#     def get(self, request):
-#         queryset = BrowseRecord.objects.filter(user_id=request.user.uid).order_by('-timestamp')[:5]
-#         serializer = BrowseRecordSerializer(queryset, many=True)
-#         article_ids = [record['article_id'] for record in serializer.data]
-#         tag_counter = Counter()
-#         for article_id in article_ids:
-#             result = es.get(index="article", id=article_id)
-#             article = result['_source']
-#             tags = article['tags']
-#             tag_counter.update(tags)
-#         top_two_tags = tag_counter.most_common(2)
-#         if len(top_two_tags) == 0:
-#             return JsonResponse({'articles': []})
-#         elif len(top_two_tags) == 1:
-#             query = {
-#                 "size": 5,
-#                 "_source": {
-#                     "excludes": ["content_en", "content_cn", "images", "tables"]
-#                 },
-#                 "query": {
-#                     "match": {"tags": top_two_tags[0][0]}
-#                 }
-#             }
-#             result = es.search(index="article", body=query)
-#             articles = result['hits']['hits']
-#             return JsonResponse({'articles': articles})
-#         elif len(top_two_tags) == 2:
-#             query = {
-#                 "size": 5,
-#                 "_source": {
-#                     "excludes": ["content_en", "content_cn", "images", "tables"]
-#                 },
-#                 "query": {
-#                     "bool": {
-#                         "should": [
-#                             {"match": {"tags": top_two_tags[0][0]}},
-#                             {"match": {"tags": top_two_tags[1][0]}}
-#                         ]
-#                     }
-#                 }
-#             }
-#             result = es.search(index="article", body=query)
-#             articles = result['hits']['hits']
-#             return JsonResponse({'articles': articles})
-
-
 class ArticleRecommendByTagAndUser(APIView):
     @login_required
     def get(self, request, *args, **kwargs):
@@ -354,5 +306,3 @@ class Chat(APIView):
             data['status'] = response.status_code
             data['result'] = response.text
         return JsonResponse(data)
-
-
