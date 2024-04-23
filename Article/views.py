@@ -59,7 +59,7 @@ class ArticleListOrderedByReadSeven(APIView):
             "query": {
                 "range": {
                     "publish_date": {
-                        "gte": "now-7d/d",
+                        "gte": "now-3d/d",
                         "lte": "now/d"
                     }
                 }
@@ -87,7 +87,7 @@ class ArticleListOrderedByReadThirty(APIView):
             "query": {
                 "range": {
                     "publish_date": {
-                        "gte": "now-30d/d",
+                        "gte": "now-7d/d",
                         "lte": "now/d"
                     }
                 }
