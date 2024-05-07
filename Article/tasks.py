@@ -44,11 +44,11 @@ def update(day):
                             "must_not": {"exists": {"field": "tags"}}
                         }
                     },
-                    {"term": {"content_cn": ""}},
-                    {"term": {"title_cn": ""}},
-                    {"term": {"homepage_image_description_cn": ""}},
-                    {"term": {"summary": ""}},
-                    {"term": {"tags": ""}}
+                    # {"term": {"content_cn": ""}},
+                    # {"term": {"title_cn": ""}},
+                    # {"term": {"homepage_image_description_cn": ""}},
+                    # {"term": {"summary": ""}},
+                    # {"term": {"tags": ""}}
                 ],
                 "minimum_should_match": 1
             }
@@ -137,7 +137,12 @@ def processArticles(articles):
                 requests.post(translate, json={"content": source['homepage_image_description_en']}).json()['result']
         content_cn = joinContent(source['content_cn'])
         # todo:太短直接分割
-        if len(content_cn) <= 5000:
+        if len(content_cn) <= 200:
+            if 'summary' not in source or not source['summary']:
+                source['summary'] = content_cn.split('。')[0]
+            if 'tags' not in source or not source['tags']:
+                source['tags'] = splitTags(requests.post(tag, json={"content": content_cn}).json()['result'])
+        elif len(content_cn) <= 5000:
             if 'summary' not in source or not source['summary']:
                 source['summary'] = requests.post(summary, json={"content": content_cn}).json()['result']
             if 'tags' not in source or not source['tags']:

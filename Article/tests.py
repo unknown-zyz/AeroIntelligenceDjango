@@ -6,3 +6,8 @@ if 'title_cn' not in source:
     print("err1")
 else:
     print(source['title_cn'])
+
+import  requests
+
+result = requests.post("http://172.16.26.4:6667/translate/", json={"content": source['title_en']}).json()['result']
+print(result)
