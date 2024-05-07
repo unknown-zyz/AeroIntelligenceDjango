@@ -127,19 +127,19 @@ MEDIA_ROOT = BASE_DIR / "image"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CRONJOBS = [
-    ('@reboot', 'Article.tasks.test', ['3'], {},
-     '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/test.log'),
-    ('30 0-4 * * *', 'Article.tasks.update', ['60'], {},
+    # ('@reboot', 'Article.tasks.test', ['3'], {},
+    #  '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/test.log'),
+    ('30 0-1 * * *', 'Article.tasks.update', ['60'], {},
      '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/update.log'),
-    ('30 0-4 * * *', 'Article.tasks.updateHomeImage', ['60'], {},
+    ('30 0-1 * * *', 'Article.tasks.updateHomeImage', ['60'], {},
      '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/updateImage.log'),
-    ('30 12-16 * * *', 'Article.tasks.update', ['60'], {},
+    ('30 12-13 * * *', 'Article.tasks.update', ['60'], {},
      '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/update.log'),
-    ('30 12-16 * * *', 'Article.tasks.updateHomeImage', ['60'], {},
+    ('30 12-13 * * *', 'Article.tasks.updateHomeImage', ['60'], {},
      '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/updateImage.log'),
-    ('50 16 * * *', 'Article.tasks.update', ['60'], {},
+    ('30 15 * * *', 'Article.tasks.update', ['60'], {},
      '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/update.log'),
-    ('0 16 * * *', 'Article.tasks.updateHomeImage', ['60'], {},
+    ('30 15 * * *', 'Article.tasks.updateHomeImage', ['60'], {},
      '>> /home/zh/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/updateImage.log'),
 ]
 

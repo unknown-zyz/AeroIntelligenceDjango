@@ -11,110 +11,49 @@ def test(day):
 
 def update(day):
     print(strftime("%Y-%m-%d %H:%M:%S", localtime()))
-    # query = {
-    #     "query": {
-    #         "bool": {
-    #             "must": {
-    #                 "range": {
-    #                     "publish_date": {
-    #                         "gte": f"now-{day}d/d",
-    #                         "lte": "now/d"
-    #                     }
-    #                 }
-    #             },
-    #             "must_not": [
-    #                 {
-    #                     "exists": {
-    #                         "field": "content_cn"
-    #                     }
-    #                 },
-    #                 {
-    #                     "exists": {
-    #                         "field": "title_cn"
-    #                     }
-    #                 },
-    #                 {
-    #                     "exists": {
-    #                         "field": "homepage_image_description_cn"
-    #                     }
-    #                 },
-    #                 {
-    #                     "exists": {
-    #                         "field": "summary"
-    #                     }
-    #                 },
-    #                 {
-    #                     "exists": {
-    #                         "field": "tags"
-    #                     }
-    #                 }
-    #             ]
-    #         }
-    #     },
-    #     "size": 100,
-    # }
-    # todo: query有bug
     query = {
         "query": {
             "bool": {
-                "must": {
-                    "range": {
-                        "publish_date": {
-                            "gte": f"now-{day}d/d",
-                            "lte": "now/d"
-                        }
-                    }
-                },
+                "must": {"range": {"publish_date": {"gte": f"now-{day}d/d", "lte": "now/d"}}},
                 "should": [
                     {
                         "bool": {
-                            "must_not": {
-                                "exists": {"field": "content_cn"}
-                            },
-                            "must": {
-                                "exists": {"field": "content_en"}
-                            }
+                            "must_not": {"exists": {"field": "content_cn"}},
+                            "must": {"exists": {"field": "content_en"}}
                         }
                     },
                     {
                         "bool": {
-                            "must_not": {
-                                "exists": {"field": "title_cn"}
-                            },
-                            "must": {
-                                "exists": {"field": "title_en"}
-                            }
+                            "must_not": {"exists": {"field": "title_cn"}},
+                            "must": {"exists": {"field": "title_en"}}
                         }
                     },
                     {
                         "bool": {
-                            "must_not": {
-                                "exists": {"field": "homepage_image_description_cn"}
-                            },
-                            "must": {
-                                "exists": {"field": "homepage_image_description_en"}
-                            }
+                            "must_not": {"exists": {"field": "homepage_image_description_cn"}},
+                            "must": {"exists": {"field": "homepage_image_description_en"}}
                         }
                     },
                     {
                         "bool": {
-                            "must_not": {
-                                "exists": {"field": "summary"}
-                            }
+                            "must_not": {"exists": {"field": "summary"}}
                         }
                     },
                     {
                         "bool": {
-                            "must_not": {
-                                "exists": {"field": "tags"}
-                            }
+                            "must_not": {"exists": {"field": "tags"}}
                         }
-                    }
+                    },
+                    {"term": {"content_cn": ""}},
+                    {"term": {"title_cn": ""}},
+                    {"term": {"homepage_image_description_cn": ""}},
+                    {"term": {"summary": ""}},
+                    {"term": {"tags": ""}}
                 ],
                 "minimum_should_match": 1
             }
         },
-        "size": 1000,
+        "size": 5000,
     }
     result = es.search(index="article", body=query, scroll="1m")
     scroll_id = result['_scroll_id']
@@ -155,7 +94,7 @@ def updateHomeImage(day):
                 ]
             }
         },
-        "size": 1000
+        "size": 5000
     }
     result = es.search(index="article", body=query)
     for article in result['hits']['hits']:
@@ -197,6 +136,7 @@ def processArticles(articles):
             source['homepage_image_description_cn'] = \
                 requests.post(translate, json={"content": source['homepage_image_description_en']}).json()['result']
         content_cn = joinContent(source['content_cn'])
+        # todo:太短直接分割
         if len(content_cn) <= 5000:
             if 'summary' not in source or not source['summary']:
                 source['summary'] = requests.post(summary, json={"content": content_cn}).json()['result']
@@ -247,7 +187,8 @@ def splitTags(string):
     for tag in tags_list:
         if tag in ['NGAD', '人工智能', '军情前沿', '先进技术', '武器装备', '俄乌战争', '生态构建', '人物故事']:
             new_tags.append(tag)
-        elif tag in ["'NGAD'", "'人工智能'", "'军情前沿'", "'先进技术'", "'武器装备'", "'俄乌战争'", "'生态构建'", "'人物故事'"]:
+        elif tag in ["'NGAD'", "'人工智能'", "'军情前沿'", "'先进技术'", "'武器装备'", "'俄乌战争'", "'生态构建'",
+                     "'人物故事'"]:
             new_tags.append(tag[1:-1])
         else:
             new_tags.append('其他')
