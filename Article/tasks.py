@@ -136,8 +136,7 @@ def processArticles(articles):
             source['homepage_image_description_cn'] = \
                 requests.post(translate, json={"content": source['homepage_image_description_en']}).json()['result']
         content_cn = joinContent(source['content_cn'])
-        # todo:太短直接分割
-        if len(content_cn) <= 200:
+        if len(content_cn) <= 500:
             if 'summary' not in source or not source['summary']:
                 source['summary'] = content_cn.split('。')[0]
             if 'tags' not in source or not source['tags']:
