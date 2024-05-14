@@ -6,7 +6,7 @@ import requests
 from BrowseRecord.serializers import BrowseRecordSerializer
 from BrowseRecord.models import BrowseRecord
 from Tools.LoginCheck import login_required
-from collections import Counter
+from AeroIntelligenceDjango.settings import ARTICLE_NUM
 
 es = Elasticsearch(['http://localhost:9200'])
 TAG_LIST = ['NGAD', '人工智能', '军情前沿', '先进技术', '武器装备', '俄乌战争', '生态构建', '人物故事']
@@ -121,7 +121,7 @@ class ArticleListByTag(APIView):
         }
         tag = tag_map[int(tag)]
         query = {
-            "size": 100,
+            "size": ARTICLE_NUM,
             "_source": {
                 "excludes": ["content_en", "content_cn", "images", "tables"]
             },

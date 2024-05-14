@@ -1,6 +1,7 @@
 from time import strftime, localtime
 import requests
 from elasticsearch import Elasticsearch
+from AeroIntelligenceDjango.settings import ARTICLE_NUM
 
 es = Elasticsearch(['http://localhost:9200'])
 
@@ -53,7 +54,7 @@ def update(day):
                 "minimum_should_match": 1
             }
         },
-        "size": 5000,
+        "size": ARTICLE_NUM
     }
     result = es.search(index="article", body=query, scroll="1m")
     scroll_id = result['_scroll_id']
@@ -94,7 +95,7 @@ def updateHomeImage(day):
                 ]
             }
         },
-        "size": 5000
+        "size": ARTICLE_NUM
     }
     result = es.search(index="article", body=query)
     for article in result['hits']['hits']:
