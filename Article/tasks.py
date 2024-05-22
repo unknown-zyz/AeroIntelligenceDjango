@@ -115,9 +115,9 @@ def updateHomeImage(day):
 
 
 def processArticles(articles):
-    translate = "http://172.16.26.4:6667/translate/"
-    summary = "http://172.16.26.4:6667/summary/"
-    tag = "http://172.16.26.4:6667/tag/"
+    translate = "http://172.16.26.8:6667/translate/"
+    summary = "http://172.16.26.8:6667/summary/"
+    tag = "http://172.16.26.8:6667/tag/"
     for article in articles:
         source = article['_source']
         article_id = source['url']

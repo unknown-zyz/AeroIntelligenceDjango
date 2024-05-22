@@ -278,7 +278,7 @@ class ExplainWord(APIView):
     @login_required
     def get(self, request):
         word = request.GET.get('word')
-        url = "http://172.16.26.4:6667/explain/"
+        url = "http://172.16.26.8:6667/explain/"
         query = {"content": word}
         data = {}
         response = requests.post(url, json=query)
@@ -295,7 +295,7 @@ class Chat(APIView):
     @login_required
     def get(self, request):
         text = request.GET.get('text')
-        url = "http://172.16.26.4:6667/chat/"
+        url = "http://172.16.26.8:6667/chat/"
         query = {"content": text}
         data = {}
         response = requests.post(url, json=query)
